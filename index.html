@@ -168,6 +168,12 @@
             <!-- Weakness Strike input added -->
             <label for="weaknessStrike">Weakness Strike (%):</label>
             <input type="number" id="weaknessStrike" value="0" step="any">
+
+            <label for="stunStrike">Stun Strike:</label>
+            <input type="number" id="stunStrike" value="0" step="any">
+
+            <label for="enamor">Enamor Strike:</label>
+            <input type="number" id="enamor" value="0" step="any">
         </form>
     </div>
 
@@ -201,6 +207,8 @@ function calculateDamage() {
     const piercePower = (parseFloat(document.getElementById('piercePower').value) || 0);
     const attributeAdvantage = document.getElementById('attributeAdvantage').value;
     const weaknessStrike = parseFloat(document.getElementById('weaknessStrike').value) || 0;
+    const stunStrike = parseFloat(document.getElementById('stunStrike').value) || 0;
+    const enamor = parseFloat(document.getElementById('enamor').value) || 0;
 
     // Update visibility of controls
     document.getElementById('critDmgControls').style.display = (crit==='yes')?'block':'none';
@@ -247,6 +255,14 @@ function calculateDamage() {
        
     } else if (attributeAdvantage === 'resist') {
         damage *= 0.7;
+    }
+
+    // Apply Stun Strike and Enamor Strike multipliers
+    if (stunStrike > 0) {
+        damage *= (1 + stunStrike / 100);
+    }
+    if (enamor > 0) {
+        damage *= (1 + enamor / 100);
     }
 
     // Output final damage
