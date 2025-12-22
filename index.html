@@ -229,7 +229,7 @@ function calculateDamage() {
     document.getElementById('pierceControls').style.display = (pierce==='yes')?'block':'none';
 
     // Calculate synergy and aegis attack contributions
-    const synatk = (synergy === 'yes') ? (patk*0.19) : 0;
+    const synatk = (synergy === 'yes') ? (patk*0.4) : 0;
     const aegisatk = (aegis === 'yes') ? (pdef*0.4) : 0;
 
     // Base ATK part minus DEF
