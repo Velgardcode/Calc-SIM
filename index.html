@@ -133,8 +133,8 @@
                 <option value="yes">Yes</option>
             </select>
             <div id="aegisControls" class="hidden">
-                <label for="pdef">PartnerDef:</label>
-                <input type="number" id="pdef" value="0" step="any">
+                <label for="adef">Defence:</label>
+                <input type="number" id="adef" value="0" step="any">
                 <label for="aegisDmg">Aegis Power (%):</label>
                 <input type="number" id="aegisDmg" value="0" step="any">
             </div>
@@ -184,6 +184,13 @@
 
             <label for="enamor">Enamor Strike:</label>
             <input type="number" id="enamor" value="0" step="any">
+            
+            <label style="margin-top:8px;display:block">Simulation Controls:</label>
+            <label for="autoRecord" style="font-weight:normal;">
+                <input type="checkbox" id="autoRecord"> Auto Record
+            </label>
+            <button type="button" id="recordBtn">Record Simulation</button>
+            <button type="button" id="clearHistoryBtn" style="margin-top:6px;background:#dc3545">Clear History</button>
         </form>
     </div>
 
@@ -194,6 +201,35 @@
 </div>
 
 <script>
+const HISTORY_KEY = 'damageHistory_v1';
+let damageHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+let lastCalculatedDamage = 0;
+
+function renderHistory() {
+    const details = document.getElementById('details');
+    if (!damageHistory || damageHistory.length === 0) {
+        details.innerHTML = '';
+        return;
+    }
+    const recent = damageHistory.slice().reverse();
+    let html = '<div style="font-size:14px;text-align:left"><strong>Last ' + Math.min(5, damageHistory.length) + ':</strong><ul style="padding-left:18px;margin:6px 0">';
+    recent.forEach(entry => {
+        html += `<li>${entry.time} — ${entry.damage}</li>`;
+    });
+    html += '</ul></div>';
+    details.innerHTML = html;
+}
+
+function addToHistory(damage) {
+    const rounded = Math.round(damage);
+    const last = damageHistory.length ? damageHistory[damageHistory.length - 1].damage : null;
+    if (last === rounded) return; // avoid duplicates
+    const entry = { damage: rounded, time: new Date().toLocaleTimeString() };
+    damageHistory.push(entry);
+    while (damageHistory.length > 5) damageHistory.shift();
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(damageHistory));
+}
+
 function calculateDamage() {
     // Get all input values
     const baseAtk = parseFloat(document.getElementById('baseAtk').value) || 0;
@@ -209,7 +245,7 @@ function calculateDamage() {
     const critDmg = (parseFloat(document.getElementById('critDmg').value) || 0) / 100;
     const aegis = document.getElementById('aegis').value;
     const aegisDmg = (parseFloat(document.getElementById('aegisDmg').value) || 0) / 100;
-    const pdef = parseFloat(document.getElementById('pdef').value) || 0;
+    const adef = parseFloat(document.getElementById('adef').value) || 0;
     const synergy = document.getElementById('synergy').value;
     const synergyDmg = (parseFloat(document.getElementById('synergyDmg').value) || 0) / 100;
     const patk = parseFloat(document.getElementById('patk').value) || 0;
@@ -229,11 +265,11 @@ function calculateDamage() {
     document.getElementById('pierceControls').style.display = (pierce==='yes')?'block':'none';
 
     // Calculate synergy and aegis attack contributions
-    const synatk = (synergy === 'yes') ? (patk*0.19) : 0;
-    const aegisatk = (aegis === 'yes') ? (pdef*0.4) : 0;
+    const synatk = (synergy === 'yes') ? (patk*0.4) : 0;
+    const aegisatk = (aegis === 'yes') ? (adef*0.4) : 0;
 
     // Base ATK part minus DEF
-    const atkPart = 0.4 * (baseAtk+synatk+aegisatk)* (1 + MPatk / 100) * (1 + elemAtkBonus / 100) * (1 + atkBuff/ 100);
+    const atkPart = 0.4 * (baseAtk* (1 + atkBuff/ 100)+synatk+aegisatk)* (1 + MPatk / 100) * (1 + elemAtkBonus / 100) * (1 + MPDMG / 100);
     const defPart = 0.2 * enemyDef ;
     let baseDmg = atkPart - defPart;
     if (baseDmg < 0) baseDmg = 0;
@@ -241,11 +277,7 @@ function calculateDamage() {
     // Ult multiplier
     const ultPart = (ultMult / 100) * (1 + ultDmgBonus / 100)* (1 + ultResDown / 100);
     let damage = baseDmg * ultPart;
-
-    // Phys/Mag ATK DMG
-    if (MPDMG !== 0 && !isNaN(MPDMG)) {
-        damage *= (1+MPDMG / 100);
-    }
+    // Apply Attribute Resistance Down
     if (AtrributeResDown !== 0 && !isNaN(AtrributeResDown)) {
         damage *= (1+AtrributeResDown / 100);
     }
@@ -287,14 +319,34 @@ function calculateDamage() {
     }
 
     // Output final damage
-    document.getElementById('result').innerHTML = `Damage: ${Math.round(damage)}`;
-    document.getElementById('details').innerHTML = '';
+    const rounded = Math.round(damage);
+    lastCalculatedDamage = rounded;
+    document.getElementById('result').innerHTML = `Damage: ${rounded}`;
+    // Only auto-record when checkbox is checked
+    const auto = document.getElementById('autoRecord') && document.getElementById('autoRecord').checked;
+    if (auto) {
+        addToHistory(damage);
+        renderHistory();
+    }
 }
 
 // Auto-update on input
 document.querySelectorAll('input, select').forEach(input => {
     input.addEventListener('input', calculateDamage);
 });
+// Record and clear buttons
+document.getElementById('recordBtn').addEventListener('click', () => {
+    addToHistory(lastCalculatedDamage);
+    renderHistory();
+});
+document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+    damageHistory = [];
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+});
+
+// Render any existing history first, then calculate once without duplicating a same-value entry
+renderHistory();
 calculateDamage();
 </script>
 </body>
