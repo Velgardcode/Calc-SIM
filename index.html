@@ -395,7 +395,7 @@ function percentMultiplier(id) {
 }
 
 function rateMultiplier(powerId, resistanceId, isSuper, superScale) {
-    const difference = value(powerId) - value(resistanceId);
+    const difference = value(powerId) + value(resistanceId);
     return 1 + (isSuper ? superScale : 1) * difference / 100;
 }
 
@@ -613,7 +613,7 @@ function calculateDamage() {
 
     let criticalFactor = 1;
     if (selected('critEnabled') === 'yes') {
-        const critDifference = value('critPower') - value('critRes');
+        const critDifference = value('critPower') + value('critRes');
         criticalFactor = selected('critSuper') === 'yes'
             ? 1.5 + 1.3 * critDifference / 100
             : 1.3 + critDifference / 100;
@@ -652,9 +652,10 @@ function calculateDamage() {
 
     const randomFactor = 1 + Number(selected('randomRoll')) / 100;
     const ordinaryDamage = baseDamage * damageFactors.reduce((product, factor) => product * factor, 1)
-        * randomFactor * criticalFactor * synergyFactor * aegisFactor;
+        * randomFactor * criticalFactor * synergyFactor;
+    // Previous placement: const ordinaryDamage = baseDamage * factors * randomFactor * criticalFactor * synergyFactor * aegisFactor;
     const damage = Math.max(0, (ordinaryDamage + fixedPierceDamage) * pierceFactor
-        * weaknessFactor * percentMultiplier('anyMultiplier'));
+        * aegisFactor * weaknessFactor * percentMultiplier('anyMultiplier'));
 
     currentDamage = Math.round(damage);
     document.getElementById('result').textContent = `Damage: ${currentDamage}`;
