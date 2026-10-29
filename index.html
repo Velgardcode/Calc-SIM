@@ -3,356 +3,700 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ISEKAI Memories Damage Calculator (Ultimate)</title>
+<title>ISEKAI Memories Calculator (Updated)</title>
 <style>
+    * { box-sizing: border-box; }
     body {
         font-family: Arial, sans-serif;
         margin: 0;
         padding: 20px;
         background-color: #f4f4f4;
+        color: #222;
     }
-    .hidden { display: none; }
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    .formula {
-        background-color: #fff;
-        padding: 10px;
+    h1 { text-align: center; margin: 0 0 20px; }
+    h2 { font-size: 17px; margin: 18px 0 10px; }
+    .formula, .form-container, .result-container {
+        background: #fff;
         border: 1px solid #ccc;
-        margin-bottom: 20px;
-        font-style: italic;
-        text-align: center;
-        font-size: 12px;
-        line-height: 1.4;
+        border-radius: 8px;
+        padding: 14px;
     }
+    .formula { margin-bottom: 18px; font-size: 13px; line-height: 1.5; }
     .container {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
+        align-items: start;
+        gap: 18px;
+    }
+    .side-panel { display: grid; align-content: start; gap: 14px; min-width: 0; }
+    .group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 8px 12px;
+        padding: 10px;
+        margin-bottom: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fafafa;
+    }
+    .rate-group { display: grid; gap: 8px; }
+    .rate-row {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fafafa;
+    }
+    .field label {
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 20px;
+        align-items: flex-end;
+        height: 2.4em;
+        margin-bottom: 4px;
+        font-weight: bold;
+        font-size: 12px;
+        line-height: 1.2;
     }
-    .form-container {
-        width: 45%;
-        background-color: #fff;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    .field input, .field select {
+        width: 100%;
+        padding: 5px 6px;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        font-size: 12px;
     }
+    .field input:disabled { background: #e8e8e8; color: #777; }
+    .field small { display: block; margin-top: 4px; color: #555; font-size: 11px; }
     .result-container {
-        width: 45%;
-        background-color: #d4edda;
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid #c3e6cb;
+        background: #e7f4e9;
+        border-color: #b7d9bd;
         text-align: center;
-        font-size: 22px;
-        font-weight: bold;
     }
-    form label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
+    .gauge-container {
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 14px;
+    }
+    .gauge-container h2 { margin-top: 0; }
+    .unit-grid { display: grid; gap: 8px; }
+    .unit-card {
+        overflow: hidden;
+        border-radius: 6px;
+        background: #f0f0f0;
+    }
+    .unit-card h3 {
+        margin: 0;
+        padding: 7px 9px;
+        background: #218838;
+        color: #fff;
+        font-size: 13px;
+        font-weight: normal;
+    }
+    .orb-count-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 4px 9px;
         font-size: 12px;
     }
-    form input, form select {
-        width: 100%;
-        padding: 6px;
-        margin-bottom: 10px;
-        font-size: 12px;
-        box-sizing: border-box;
+    .orb-count-row input {
+        width: 58px;
+        padding: 4px;
+        border: 1px solid #bbb;
+        border-radius: 4px;
     }
-    button {
-        padding: 8px 15px;
-        background-color: #007bff;
-        color: white;
-        border: none;
+    .gauge-buff-group { display: grid; gap: 8px; margin-top: 12px; }
+    .gauge-buff-row {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fafafa;
+    }
+    .gauge-buff-row h3 { margin: 0 0 6px; font-size: 12px; }
+    .gauge-buff-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; }
+    .gauge-buff-grid .field label { height: auto; min-height: 2.4em; font-size: 10px; }
+    .gauge-buff-grid .field input { padding: 4px; font-size: 11px; }
+    .unity-override-toggle { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; }
+    .unity-override-toggle input { margin: 0; }
+    #unityGaugeBuffControls[hidden] { display: none; }
+    #gaugeStatus { margin: 8px 0; font-size: 11px; }
+    #gaugeResults { display: grid; gap: 5px; margin-top: 10px; padding: 9px; border-radius: 6px; background: #e7f4e9; font-size: 13px; }
+    #gaugeResults strong { font-size: 14px; }
+    .unit-gauge-result { padding: 6px; border-bottom: 1px solid #c8d8ca; }
+    .unit-gauge-result > strong { display: block; margin-bottom: 4px; }
+    #result { font-size: 24px; font-weight: bold; }
+    #details { margin-top: 12px; text-align: left; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+    .save-controls { display: flex; gap: 8px; margin-top: 16px; }
+    .save-controls input { flex: 0 1 35%; width: 35%; max-width: 180px; min-width: 0; padding: 8px; border: 1px solid #bbb; border-radius: 4px; }
+    .save-controls button { padding: 8px 14px; border: 0; border-radius: 4px; background: #007bff; color: #fff; cursor: pointer; }
+    .save-controls button:hover { background: #0056b3; }
+    .save-controls button.reset-button { background: #dc3545; }
+    .save-controls button.reset-button:hover { background: #b02a37; }
+    #saveStatus { margin-top: 8px; font-size: 12px; }
+    #savedSimulations { margin-top: 14px; text-align: left; font-size: 13px; }
+    #savedSimulations ul {
+        max-height: 25vh;
+        overflow-y: auto;
+        list-style: none;
+        margin: 6px 0 0;
+        padding: 0;
+    }
+    .saved-simulation {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 4px 6px;
+        border-bottom: 1px solid #c8d8ca;
+        font-size: 11px;
+    }
+    .saved-simulation button {
+        flex: 0 0 auto;
+        padding: 3px 6px;
+        border: 0;
+        border-radius: 3px;
+        background: #dc3545;
+        color: #fff;
+        font-size: 10px;
         cursor: pointer;
-        font-size: 14px;
-        width: 100%;
     }
-    button:hover {
-        background-color: #0056b3;
+    .saved-simulation button:hover { background: #b02a37; }
+    .note { color: #555; font-size: 12px; line-height: 1.5; }
+    @media (max-width: 760px) {
+        body { padding: 12px; }
+        .container { grid-template-columns: 1fr; }
+        .side-panel { grid-row: 1; }
+        .rate-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-    #details {
-        margin-top: 10px;
-        font-size: 12px;
-        color: #333;
+    @media (max-width: 420px) {
+        .rate-row { grid-template-columns: 1fr; }
     }
 </style>
 </head>
 <body>
-<h1>ISEKAI Memories Damage Calculator</h1>
+<h1>ISEKAI Memories Calculator</h1>
+
 
 <div class="container">
     <div class="form-container">
         <form id="damageForm">
-            <label for="baseAtk">Base ATK:</label>
-            <input type="number" id="baseAtk" value="0" step="any">
-
-            <label for="MPatk">Phys/Mag ATK (%):</label>
-            <input type="number" id="MPatk" value="0" step="any">
-
-            <label for="AtrributeResDown">AtrributeResDown+ (%):</label>
-            <input type="number" id="AtrributeResDown" value="0" step="any">
-
-            <label for="MPDMG">Phys/Mag ATK DMG (%):</label>
-            <input type="number" id="MPDMG" value="0" step="any">
-            
-            <label for="atkBuff">ATK(%):</label>
-            <input type="number" id="atkBuff" value="0" step="any">
-
-            <label for="elemAtkBonus">Elem ATK (%):</label>
-            <input type="number" id="elemAtkBonus" value="0" step="any">
-
-            <label for="enemyDef">Enemy DEF:</label>
-            <input type="number" id="enemyDef" value="0" step="any">
-
-            <label for="ultMult">Ult Multiplier (%):</label>
-            <input type="number" id="ultMult" value="750" step="any">
-
-            <label for="ultDmgBonus">Ult DMG (%):</label>
-            <input type="number" id="ultDmgBonus" value="0" step="any">
-
-            <label for="ultResDown">Ult ResDown (%):</label>
-            <input type="number" id="ultResDown" value="0" step="any">
-
-            <label for="crit">Apply Crit?</label>
-            <select id="crit">
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-            </select>
-            <div id="critDmgControls" class="hidden">
-                <label for="critDmg">Crit Damage (%):</label>
-                <input type="number" id="critDmg" value="0" step="any">
+            <h2>Displayed stats and attack buffs</h2>
+            <div class="group">
+                <div class="field"><label for="atkStat">ATK stat</label><input id="atkStat" type="number" value="0" step="any"></div>
+                <div class="field"><label for="atkRate">ATK (%)</label><input id="atkRate" type="number" value="0" step="any"><small>Enter an ATK buff; 0 means no buff.</small></div>
+                <div class="field"><label for="physMagAtk">Phys/Mag ATK (%)</label><input id="physMagAtk" type="number" value="0" step="any"></div>
+                <div class="field"><label for="elementAtk">Element ATK (%)</label><input id="elementAtk" type="number" value="0" step="any"></div>
+                <div class="field"><label for="stAoeAtk">ST/AOE ATK (%)</label><input id="stAoeAtk" type="number" value="0" step="any"></div>
             </div>
 
-            <label for="aegis">Apply Aegis?</label>
-            <select id="aegis">
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-            </select>
-            <div id="aegisControls" class="hidden">
-                <label for="adef">Defence:</label>
-                <input type="number" id="adef" value="0" step="any">
-                <label for="aegisDmg">Aegis Power (%):</label>
-                <input type="number" id="aegisDmg" value="0" step="any">
+            <h2>Enemy Stats</h2>
+            <div class="group">
+                <div class="field"><label for="defStat">Enemy DEF</label><input id="defStat" type="number" value="0" step="any"></div>
+                <div class="field"><label for="physMagRes">Phys/Mag resistance (%)</label><input id="physMagRes" type="number" value="0" step="any"></div>
+                <div class="field"><label for="elementRes">Element resistance (%)</label><input id="elementRes" type="number" value="0" step="any"></div>
+                <div class="field"><small>Enemy resistance modifies Enemy DEF. Set Enemy DEF above zero for these resistances to affect base damage.</small></div>
             </div>
 
-            <label for="synergy">Apply Synergy?</label>
-            <select id="synergy">
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-            </select>
-            <div id="synergyControls" class="hidden">
-                <label for="patk">PartnerAtk:</label>
-                <input type="number" id="patk" value="0" step="any">
-                <label for="synergyDmg">Synergy Power (%):</label>
-                <input type="number" id="synergyDmg" value="0" step="any">
+            <h2>Damage modifiers</h2>
+            <div class="group">
+                <div class="field"><label for="ultMultiplier">Ultimate multiplier (%)</label><input id="ultMultiplier" type="number" value="750" step="any"><small>This is the Secret skill multiplier, not an added buff.</small></div>
+                <div class="field"><label for="ultDamage">Ultimate damage buff (%)</label><input id="ultDamage" type="number" value="0" step="any"></div>
+                <div class="field"><label for="ultResDown">Ultimate resistance down (%)</label><input id="ultResDown" type="number" value="0" step="any"></div>
+                <div class="field"><label for="physMagDamage">Phys/Mag damage (%)</label><input id="physMagDamage" type="number" value="0" step="any"></div>
+                <div class="field"><label for="attributeDamage">Element+ (%)</label><input id="attributeDamage" type="number" value="0" step="any"></div>
+                <div class="field"><label for="physMagDamageResDown">Phys/Mag damage resistance down (%)</label><input id="physMagDamageResDown" type="number" value="0" step="any"></div>
+                <div class="field"><label for="attributeDamageResDown">Element+ resistance down (%)</label><input id="attributeDamageResDown" type="number" value="0" step="any"></div>
+                <div class="field"><label for="stAoeResDown">ST/AOE resistance down (%)</label><input id="stAoeResDown" type="number" value="0" step="any"></div>
+                <div class="field"><label for="statusResDown">Damage resistance down while status applies (%)</label><input id="statusResDown" type="number" value="0" step="any"><small>Enter the sum of applicable status resistance downs e.g. Adalman + FM Blanc.</small></div>
+                <div class="field"><label for="enamorStrike">Enamor strike (%)</label><input id="enamorStrike" type="number" value="0" step="any"></div>
+                <div class="field"><label for="stunStrike">Stun strike (%)</label><input id="stunStrike" type="number" value="0" step="any"></div>
+                <div class="field"><label for="randomRoll">Random multiplier roll</label>
+                    <select id="randomRoll">
+                        <option value="-1">−1% (low)</option>
+                        <option value="0" selected>0% (average)</option>
+                        <option value="1">+1% (high)</option>
+                    </select>
+                </div>
+                <div class="field"><label for="anyMultiplier">Additional damage (%)</label><input id="anyMultiplier" type="number" value="0" step="any"><small>Enter an additional damage buff; 0 means no buff.</small></div>
             </div>
 
-            <label for="pierce">Apply Pierce?</label>
-            <select id="pierce">
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-            </select>
-            <div id="pierceControls" class="hidden">
-                <label for="piercePower">Pierce Power (%):</label>
-                <input type="number" id="piercePower" value="0" step="any">
+            <h2>Rate buffs</h2>
+            <div class="rate-group">
+                <div class="rate-row">
+                    <div class="field"><label for="critSuper">Super critical</label><select id="critSuper"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    <div class="field"><label for="critEnabled">Critical</label><select id="critEnabled"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    <div class="field"><label for="critPower">Critical power (%)</label><input id="critPower" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="critRes">Critical resistance (%)</label><input id="critRes" type="number" value="0" step="any"></div>
+                </div>
+
+                <div class="rate-row">
+                    <div class="field"><label for="pierceSuper">Super pierce</label><select id="pierceSuper"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    <div class="field"><label for="pierceEnabled">Pierce</label><select id="pierceEnabled"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    <div class="field"><label for="piercePower">Pierce power (%)</label><input id="piercePower" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="pierceRes">Pierce resistance (%)</label><input id="pierceRes" type="number" value="0" step="any"></div>
+                </div>
+                
+                <div class="rate-row">
+                    <div class="field"><label for="synergySuper">Super synergy</label><select id="synergySuper"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    <div class="field"><label for="synergyEnabled">Synergy</label><select id="synergyEnabled"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    <div class="field"><label for="synergyPower">Synergy power (%)</label><input id="synergyPower" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="synergyRes">Synergy resistance (%)</label><input id="synergyRes" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="supportAtk">Support displayed ATK</label><input id="supportAtk" type="number" value="0" step="any"></div>
+                </div>
+                <div class="rate-row">
+                    <div class="field"><label for="aegisSuper">Super Aegis</label><select id="aegisSuper"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    <div class="field"><label for="aegisEnabled">Aegis</label><select id="aegisEnabled"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    <div class="field"><label for="aegisPower">Aegis power (%)</label><input id="aegisPower" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="aegisRes">Aegis resistance (%)</label><input id="aegisRes" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="aegisSupportDef">Support displayed DEF</label><input id="aegisSupportDef" type="number" value="0" step="any"></div>
+                </div>
             </div>
 
-            <label for="attributeAdvantage">Attribute Advantage:</label>
-            <select id="attributeAdvantage">
-                <option value="advantage">Advantage</option>
-                <option value="neutral">Neutral</option>
-                <option value="resist">Resist</option>
-            </select>
-
-            <label for="unboundState">Unbound State:</label>
-            <select id="unboundState">
-                <option value="no">No</option>
-                <option value="weakPoint">Weak Point</option>
-                <option value="superWeakPoint">Super Weak Point</option>
-            </select>
-
-            <!-- Weakness Strike input added -->
-            <label for="weaknessStrike">Weakness Strike (%):</label>
-            <input type="number" id="weaknessStrike" value="0" step="any">
-
-            <label for="stunStrike">Stun Strike:</label>
-            <input type="number" id="stunStrike" value="0" step="any">
-
-            <label for="enamor">Enamor Strike:</label>
-            <input type="number" id="enamor" value="0" step="any">
-            
-            <label style="margin-top:8px;display:block">Simulation Controls:</label>
-            <label for="autoRecord" style="font-weight:normal;">
-                <input type="checkbox" id="autoRecord"> Auto Record
-            </label>
-            <button type="button" id="recordBtn">Record Simulation</button>
-            <button type="button" id="clearHistoryBtn" style="margin-top:6px;background:#dc3545">Clear History</button>
+            <h2>Pierce, weakness, and attribute compatibility</h2>
+            <div class="group">
+                <div class="field"><label for="attributeCompatibility">Attribute / Weak Point status</label>
+                    <select id="attributeCompatibility">
+                        <option value="1.6" selected>Element+ Attribute (×1.6)</option>
+                        <option value="1.5">Weak Point (×1.5)</option>
+                        <option value="1">Neutral (×1.0)</option>
+                        <option value="0.7">Resist (×0.7)</option>
+                    </select>
+                </div>
+                <div class="field"><label for="weaknessAttributeDamage">Damage done to this attribute (%)</label><input id="weaknessAttributeDamage" type="number" value="0" step="any"></div>
+                <div class="field"><label for="weaknessStrike">Weakness strike (%)</label><input id="weaknessStrike" type="number" value="0" step="any"></div>
+                <div class="field"><label for="esuperWeaknessStrik">Super weakness strike (%)</label><input id="superWeaknessStrike" type="number" value="0" step="any"></div>
+                <div class="field"><label for="weaknessRes">Weakness strike resistance (%)</label><input id="weaknessRes" type="number" value="0" step="any"></div>
+                <div class="field"><label for="superWeaknessRes">Super weakness strike resistance (%)</label><input id="superWeaknessRes" type="number" value="0" step="any"></div>
+                <div class="field"><label for="trueAttributeUnbound">True attribute unbound multiplier</label><input id="trueAttributeUnbound" type="number" value="1" step="any"><small>Enter the multiplier directly; 1.24 means ×1.24. Default 1 = no buff.</small></div>
+            </div>
         </form>
     </div>
 
-    <div class="result-container">
-        <div id="result">Damage: 0</div>
-        <div id="details"></div>
+    <div class="side-panel">
+        <div class="result-container">
+            <div id="result">Damage: 0</div>
+            <div id="details" aria-live="polite"></div>
+            <div class="save-controls">
+                <input id="simulationName" type="text" maxlength="80" placeholder="Simulation name (optional)" aria-label="Simulation name (optional)">
+                <button type="button" id="saveSimulation">Save</button>
+                <button type="button" id="resetSimulations" class="reset-button">Clear History</button>
+            </div>
+            <div id="saveStatus" role="status" aria-live="polite"></div>
+            <div id="savedSimulations"></div>
+        </div>
+        <section class="gauge-container" aria-labelledby="gaugeHeading">
+            <h2 id="gaugeHeading">Orb Gauge Calculator</h2>
+            <p class="note">Enter each unit's orb counts. The team can use at most 6 orbs total. A Unity orb uses the highest of the Orange, Green, and Blue Soul increases, plus All Soul increase.</p>
+            <div class="unit-grid">
+                <section class="unit-card" aria-labelledby="unit1Heading">
+                    <h3 id="unit1Heading">Unit 1</h3>
+                    <label class="orb-count-row" for="unit1Orange">Orange Souls<input id="unit1Orange" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit1Green">Green Souls<input id="unit1Green" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit1Blue">Blue Souls<input id="unit1Blue" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit1Unity">Unity Souls<input id="unit1Unity" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                </section>
+                <section class="unit-card" aria-labelledby="unit2Heading">
+                    <h3 id="unit2Heading">Unit 2</h3>
+                    <label class="orb-count-row" for="unit2Orange">Orange Souls<input id="unit2Orange" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit2Green">Green Souls<input id="unit2Green" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit2Blue">Blue Souls<input id="unit2Blue" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit2Unity">Unity Souls<input id="unit2Unity" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                </section>
+                <section class="unit-card" aria-labelledby="unit3Heading">
+                    <h3 id="unit3Heading">Unit 3</h3>
+                    <label class="orb-count-row" for="unit3Orange">Orange Souls<input id="unit3Orange" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit3Green">Green Souls<input id="unit3Green" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit3Blue">Blue Souls<input id="unit3Blue" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                    <label class="orb-count-row" for="unit3Unity">Unity Souls<input id="unit3Unity" class="orb-count" type="number" min="0" max="6" step="1" value="0"></label>
+                </section>
+            </div>
+            <div class="gauge-buff-group">
+                <div class="gauge-buff-row">
+                    <h3>Secret Skill Gauge Increase (%)</h3>
+                    <div class="gauge-buff-grid">
+                        <div class="field"><label for="ultOrangeBuff">Orange Soul</label><input id="ultOrangeBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="ultGreenBuff">Green Soul</label><input id="ultGreenBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="ultBlueBuff">Blue Soul</label><input id="ultBlueBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="ultAllBuff">All Souls</label><input id="ultAllBuff" type="number" value="0" step="any"></div>
+                    </div>
+                </div>
+                <div class="gauge-buff-row">
+                    <h3>Protection Gauge Increase (%)</h3>
+                    <div class="gauge-buff-grid">
+                        <div class="field"><label for="protOrangeBuff">Orange Soul</label><input id="protOrangeBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="protGreenBuff">Green Soul</label><input id="protGreenBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="protBlueBuff">Blue Soul</label><input id="protBlueBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="protAllBuff">All Souls</label><input id="protAllBuff" type="number" value="0" step="any"></div>
+                    </div>
+                </div>
+                <div class="gauge-buff-row">
+                    <h3>Skill Point Increase (%)</h3>
+                    <div class="gauge-buff-grid">
+                        <div class="field"><label for="spOrangeBuff">Orange Soul</label><input id="spOrangeBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="spGreenBuff">Green Soul</label><input id="spGreenBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="spBlueBuff">Blue Soul</label><input id="spBlueBuff" type="number" value="0" step="any"></div>
+                        <div class="field"><label for="spAllBuff">All Souls</label><input id="spAllBuff" type="number" value="0" step="any"></div>
+                    </div>
+                </div>
+            </div>
+            <label class="unity-override-toggle" for="manualUnityGaugeBuff">
+                <input id="manualUnityGaugeBuff" type="checkbox">
+                If orbs have a nerf, manually enter the Unity gauge buff.
+            </label>
+            <div id="unityGaugeBuffControls" class="gauge-buff-grid" hidden>
+                <div class="field"><label for="ultUnityBuff">Unity Ultimate gauge buff (%)</label><input id="ultUnityBuff" type="number" value="0" step="any"></div>
+                <div class="field"><label for="protUnityBuff">Unity Prot gauge buff (%)</label><input id="protUnityBuff" type="number" value="0" step="any"></div>
+                <div class="field"><label for="spUnityBuff">Unity Skill Point gauge buff (%)</label><input id="spUnityBuff" type="number" value="0" step="any"></div>
+            </div>
+            <div id="gaugeStatus" aria-live="polite">Orbs used: 0 / 6 · Combo bonus: 100%</div>
+            <div id="gaugeResults" aria-live="polite">
+                <p class="note">Ultimate Gauge: 32 = one Ultimate; 64 = EX Ultimate. Prot Gauge: 60 = one Protector use; 120 = two uses.</p>
+                <div class="unit-gauge-result">
+                    <strong>Unit 1</strong>
+                    <div>Ultimate Gauge: <span id="unit1UltGaugeResult">0</span></div>
+                    <div>Prot Gauge: <span id="unit1ProtGaugeResult">0</span></div>
+                    <div>SP Gauge: <span id="unit1SpGaugeResult">0</span></div>
+                </div>
+                <div class="unit-gauge-result">
+                    <strong>Unit 2</strong>
+                    <div>Ultimate Gauge: <span id="unit2UltGaugeResult">0</span></div>
+                    <div>Prot Gauge: <span id="unit2ProtGaugeResult">0</span></div>
+                    <div>SP Gauge: <span id="unit2SpGaugeResult">0</span></div>
+                </div>
+                <div class="unit-gauge-result">
+                    <strong>Unit 3</strong>
+                    <div>Ultimate Gauge: <span id="unit3UltGaugeResult">0</span></div>
+                    <div>Prot Gauge: <span id="unit3ProtGaugeResult">0</span></div>
+                    <div>SP Gauge: <span id="unit3SpGaugeResult">0</span></div>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
 
 <script>
-const HISTORY_KEY = 'damageHistory_v1';
-let damageHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-let lastCalculatedDamage = 0;
+const SIMULATIONS_STORAGE_KEY = 'slimeImUltimateSimulations';
+let savedSimulations = [];
+let currentDamage = 0;
 
-function renderHistory() {
-    const details = document.getElementById('details');
-    if (!damageHistory || damageHistory.length === 0) {
-        details.innerHTML = '';
-        return;
-    }
-    const recent = damageHistory.slice().reverse();
-    let html = '<div style="font-size:14px;text-align:left"><strong>Last ' + Math.min(5, damageHistory.length) + ':</strong><ul style="padding-left:18px;margin:6px 0">';
-    recent.forEach(entry => {
-        html += `<li>${entry.time} — ${entry.damage}</li>`;
-    });
-    html += '</ul></div>';
-    details.innerHTML = html;
+function value(id) {
+    const element = document.getElementById(id);
+    return element instanceof HTMLInputElement ? (element.valueAsNumber || 0) : 0;
 }
 
-function addToHistory(damage) {
-    const rounded = Math.round(damage);
-    const last = damageHistory.length ? damageHistory[damageHistory.length - 1].damage : null;
-    if (last === rounded) return; // avoid duplicates
-    const entry = { damage: rounded, time: new Date().toLocaleTimeString() };
-    damageHistory.push(entry);
-    while (damageHistory.length > 5) damageHistory.shift();
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(damageHistory));
+function selected(id) {
+    return document.getElementById(id).value;
+}
+
+function percentMultiplier(id) {
+    return 1 + value(id) / 100;
+}
+
+function rateMultiplier(powerId, resistanceId, isSuper, superScale) {
+    const difference = value(powerId) - value(resistanceId);
+    return 1 + (isSuper ? superScale : 1) * difference / 100;
+}
+
+function orbCount(input) {
+    const count = Number.parseInt(input.value, 10);
+    return Number.isFinite(count) ? Math.max(0, count) : 0;
+}
+
+function enforceOrbLimit(event) {
+    const changedInput = event.currentTarget;
+    const countInputs = [...document.querySelectorAll('.orb-count')];
+    const otherCount = countInputs
+        .filter(input => input !== changedInput)
+        .reduce((total, input) => total + orbCount(input), 0);
+    const allowed = Math.max(0, 6 - otherCount);
+    const entered = Number.parseInt(changedInput.value, 10);
+    if (Number.isFinite(entered)) {
+        changedInput.value = String(Math.max(0, Math.min(allowed, entered)));
+    }
+
+    countInputs.forEach(input => {
+        const remaining = Math.max(0, 6 - countInputs
+            .filter(other => other !== input)
+            .reduce((total, other) => total + orbCount(other), 0));
+        input.max = String(remaining);
+    });
+    calculateOrbGauges();
+}
+
+function gaugeSoulBuff(gauge, color) {
+    return value(`${gauge}${color}Buff`) + value(`${gauge}AllBuff`);
+}
+
+function calculateOrbGauges() {
+    const units = [1, 2, 3].map(unit => ({
+        unit,
+        counts: {
+            Orange: orbCount(document.getElementById(`unit${unit}Orange`)),
+            Green: orbCount(document.getElementById(`unit${unit}Green`)),
+            Blue: orbCount(document.getElementById(`unit${unit}Blue`)),
+            Unity: orbCount(document.getElementById(`unit${unit}Unity`))
+        }
+    }));
+    const orbTotal = units.reduce((total, { counts }) =>
+        total + Object.values(counts).reduce((unitTotal, count) => unitTotal + count, 0), 0);
+    const comboBonuses = [1, 1, 1.05, 1.1, 1.2, 1.5, 2];
+    const comboBonus = comboBonuses[Math.min(orbTotal, 6)];
+    document.getElementById('gaugeStatus').textContent =
+        `Orbs used: ${orbTotal} / 6 · Combo bonus: ${Math.round(comboBonus * 100)}%`;
+
+    const gaugeTypes = [
+        { id: 'ult', base: { Orange: 6, Green: 3, Blue: 2, Unity: 6 } },
+        { id: 'prot', base: { Orange: 2, Green: 3, Blue: 6, Unity: 6 } },
+        { id: 'sp', base: { Orange: 4, Green: 6, Blue: 4, Unity: 6 } }
+    ];
+
+    gaugeTypes.forEach(gauge => {
+        const allSoulBuff = value(`${gauge.id}AllBuff`);
+        const highestColorBuff = Math.max(
+            value(`${gauge.id}OrangeBuff`),
+            value(`${gauge.id}GreenBuff`),
+            value(`${gauge.id}BlueBuff`)
+        );
+        const unityBuff = document.getElementById('manualUnityGaugeBuff').checked
+            ? value(`${gauge.id}UnityBuff`)
+            : highestColorBuff + allSoulBuff;
+        units.forEach(({ unit, counts }) => {
+            const colorGauge = ['Orange', 'Green', 'Blue'].reduce((total, color) => {
+                const buff = gaugeSoulBuff(gauge.id, color);
+                return total + gauge.base[color] * counts[color] * comboBonus * (1 + buff / 100);
+            }, 0);
+            const unityGauge = gauge.base.Unity * counts.Unity * comboBonus * (1 + unityBuff / 100);
+            const result = Math.round((colorGauge + unityGauge) * 100) / 100;
+            const output = document.getElementById(`unit${unit}${gauge.id === 'sp' ? 'Sp' : gauge.id === 'prot' ? 'Prot' : 'Ult'}GaugeResult`);
+            output.textContent = result.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        });
+    });
+}
+
+function renderSavedSimulations() {
+    const container = document.getElementById('savedSimulations');
+    container.replaceChildren();
+    if (savedSimulations.length === 0) return;
+
+    const heading = document.createElement('strong');
+    heading.textContent = 'Saved simulations';
+    const list = document.createElement('ul');
+    savedSimulations.forEach((simulation, index) => {
+        const item = document.createElement('li');
+        item.className = 'saved-simulation';
+        const description = document.createElement('span');
+        description.textContent = `${simulation.name} — Damage: ${simulation.damage.toLocaleString()}`;
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.textContent = 'Delete';
+        deleteButton.setAttribute('aria-label', `Delete saved simulation ${simulation.name}`);
+        deleteButton.addEventListener('click', () => deleteSimulation(index));
+        item.append(description, deleteButton);
+        list.appendChild(item);
+    });
+    container.append(heading, list);
+}
+
+function deleteSimulation(index) {
+    const nextSimulations = savedSimulations.filter((_, itemIndex) => itemIndex !== index);
+    try {
+        if (nextSimulations.length === 0) {
+            localStorage.removeItem(SIMULATIONS_STORAGE_KEY);
+        } else {
+            localStorage.setItem(SIMULATIONS_STORAGE_KEY, JSON.stringify(nextSimulations));
+        }
+    } catch (error) {
+        document.getElementById('saveStatus').textContent =
+            `Could not delete simulation: ${error.message}`;
+        return;
+    }
+
+    savedSimulations = nextSimulations;
+    document.getElementById('saveStatus').textContent = 'Simulation deleted.';
+    renderSavedSimulations();
+}
+
+function resetSimulations() {
+    if (savedSimulations.length === 0) {
+        document.getElementById('saveStatus').textContent = 'There are no saved simulations to reset.';
+        return;
+    }
+    if (!window.confirm('Delete all saved simulations? This cannot be undone.')) return;
+
+    try {
+        localStorage.removeItem(SIMULATIONS_STORAGE_KEY);
+    } catch (error) {
+        document.getElementById('saveStatus').textContent =
+            `Could not reset simulations: ${error.message}`;
+        return;
+    }
+
+    savedSimulations = [];
+    document.getElementById('saveStatus').textContent = 'All saved simulations were deleted.';
+    renderSavedSimulations();
+}
+
+function loadSavedSimulations() {
+    try {
+        const stored = localStorage.getItem(SIMULATIONS_STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (!Array.isArray(parsed) || parsed.some(simulation =>
+                !simulation || typeof simulation.name !== 'string'
+                || !Number.isFinite(simulation.damage))) {
+                throw new Error('Saved simulation data has an invalid format.');
+            }
+            savedSimulations = parsed;
+        }
+        renderSavedSimulations();
+    } catch (error) {
+        document.getElementById('saveStatus').textContent =
+            `Could not load saved simulations: ${error.message}`;
+    }
+}
+
+function saveSimulation() {
+    const nameInput = document.getElementById('simulationName');
+    const name = nameInput.value.trim() || `Simulation ${savedSimulations.length + 1}`;
+    const nextSimulations = [...savedSimulations, { name, damage: currentDamage }];
+
+    try {
+        localStorage.setItem(SIMULATIONS_STORAGE_KEY, JSON.stringify(nextSimulations));
+    } catch (error) {
+        document.getElementById('saveStatus').textContent =
+            `Could not save simulation: ${error.message}`;
+        return;
+    }
+
+    savedSimulations = nextSimulations;
+    nameInput.value = '';
+    document.getElementById('saveStatus').textContent = `Saved "${name}".`;
+    renderSavedSimulations();
 }
 
 function calculateDamage() {
-    // Get all input values
-    const baseAtk = parseFloat(document.getElementById('baseAtk').value) || 0;
-    const atkBuff = parseFloat(document.getElementById('atkBuff').value) || 0;
-    const MPatk = parseFloat(document.getElementById('MPatk').value) || 0;
-    const MPDMG = parseFloat(document.getElementById('MPDMG').value) || 0;
-    const elemAtkBonus = parseFloat(document.getElementById('elemAtkBonus').value) || 0;
-    const enemyDef = parseFloat(document.getElementById('enemyDef').value) || 0;
-    const ultMult = parseFloat(document.getElementById('ultMult').value) || 0;
-    const ultDmgBonus = parseFloat(document.getElementById('ultDmgBonus').value) || 0;
-    const ultResDown = parseFloat(document.getElementById('ultResDown').value) || 0;
-    const crit = document.getElementById('crit').value;
-    const critDmg = (parseFloat(document.getElementById('critDmg').value) || 0) / 100;
-    const aegis = document.getElementById('aegis').value;
-    const aegisDmg = (parseFloat(document.getElementById('aegisDmg').value) || 0) / 100;
-    const adef = parseFloat(document.getElementById('adef').value) || 0;
-    const synergy = document.getElementById('synergy').value;
-    const synergyDmg = (parseFloat(document.getElementById('synergyDmg').value) || 0) / 100;
-    const patk = parseFloat(document.getElementById('patk').value) || 0;
-    const pierce = document.getElementById('pierce').value;
-    const piercePower = (parseFloat(document.getElementById('piercePower').value) || 0);
-    const attributeAdvantage = document.getElementById('attributeAdvantage').value;
-    const weaknessStrike = parseFloat(document.getElementById('weaknessStrike').value) || 0;
-    const stunStrike = parseFloat(document.getElementById('stunStrike').value) || 0;
-    const enamor = parseFloat(document.getElementById('enamor').value) || 0;
-    const AtrributeResDown = parseFloat(document.getElementById('AtrributeResDown').value) || 0;
-    const unboundState = document.getElementById('unboundState').value || 'no';
+    const displayedAtk = value('atkStat') * percentMultiplier('atkRate');
+    const displayedDef = value('defStat');
+    const isSynergy = selected('synergyEnabled') === 'yes';
+    const isAegis = selected('aegisEnabled') === 'yes';
+    const isPierce = selected('pierceEnabled') === 'yes';
 
-    // Update visibility of controls
-    document.getElementById('critDmgControls').style.display = (crit==='yes')?'block':'none';
-    document.getElementById('aegisControls').style.display = (aegis==='yes')?'block':'none';
-    document.getElementById('synergyControls').style.display = (synergy==='yes')?'block':'none';
-    document.getElementById('pierceControls').style.display = (pierce==='yes')?'block':'none';
+    const synergyAtk = isSynergy
+        ? value('supportAtk') * (selected('synergySuper') === 'yes' ? 0.55 : 0.4)
+        : 0;
+    const aegisAtk = isAegis
+        ? value('aegisSupportDef') * (selected('aegisSuper') === 'yes' ? 0.55 : 0.4)
+        : 0;
+    const actualAtk = (displayedAtk + synergyAtk + aegisAtk)
+        * percentMultiplier('physMagAtk')
+        * percentMultiplier('elementAtk')
+        * percentMultiplier('stAoeAtk');
+    const actualDef = displayedDef
+        * percentMultiplier('physMagRes')
+        * percentMultiplier('elementRes');
+    const baseDamage = Math.max(0, actualAtk * 0.4 - actualDef * 0.2);
 
-    // Calculate synergy and aegis attack contributions
-    const synatk = (synergy === 'yes') ? (patk*0.4) : 0;
-    const aegisatk = (aegis === 'yes') ? (adef*0.4) : 0;
+    const damageFactors = [
+        value('ultMultiplier') / 100,
+        percentMultiplier('ultDamage'),
+        percentMultiplier('ultResDown'),
+        percentMultiplier('physMagDamage'),
+        percentMultiplier('attributeDamage'),
+        percentMultiplier('physMagDamageResDown'),
+        percentMultiplier('attributeDamageResDown'),
+        percentMultiplier('stAoeResDown'),
+        1 + (value('enamorStrike') + value('stunStrike')) / 100,
+        percentMultiplier('statusResDown')
+    ];
 
-    // Base ATK part minus DEF
-    const atkPart = 0.4 * (baseAtk* (1 + atkBuff/ 100)+synatk+aegisatk)* (1 + MPatk / 100) * (1 + elemAtkBonus / 100) * (1 + MPDMG / 100);
-    const defPart = 0.2 * enemyDef ;
-    let baseDmg = atkPart - defPart;
-    if (baseDmg < 0) baseDmg = 0;
+    let criticalFactor = 1;
+    if (selected('critEnabled') === 'yes') {
+        const critDifference = value('critPower') - value('critRes');
+        criticalFactor = selected('critSuper') === 'yes'
+            ? 1.5 + 1.3 * critDifference / 100
+            : 1.3 + critDifference / 100;
+    }
+    const synergyFactor = isSynergy
+        ? rateMultiplier('synergyPower', 'synergyRes', selected('synergySuper') === 'yes', 1.2)
+        : 1;
+    const aegisFactor = isAegis
+        ? rateMultiplier('aegisPower', 'aegisRes', selected('aegisSuper') === 'yes', 1.2)
+        : 1;
+    const pierceFactor = isPierce
+        ? rateMultiplier('piercePower', 'pierceRes', selected('pierceSuper') === 'yes', 1.2)
+        : 1;
+    const fixedPierceDamage = isPierce
+        ? displayedAtk * (selected('pierceSuper') === 'yes' ? 1 : 0.06)
+        : 0;
 
-    // Ult multiplier
-    const ultPart = (ultMult / 100) * (1 + ultDmgBonus / 100)* (1 + ultResDown / 100);
-    let damage = baseDmg * ultPart;
-    // Apply Attribute Resistance Down
-    if (AtrributeResDown !== 0 && !isNaN(AtrributeResDown)) {
-        damage *= (1+AtrributeResDown / 100);
-    }
+    const hasWeakPoint = ['1.5', '1.6'].includes(selected('attributeCompatibility'));
+    [
+        'weaknessAttributeDamage',
+        'weaknessStrike',
+        'superWeaknessStrike',
+        'weaknessRes',
+        'superWeaknessRes',
+        'trueAttributeUnbound'
+    ].forEach(id => {
+        document.getElementById(id).disabled = !hasWeakPoint;
+    });
+    const compatibility = Number(selected('attributeCompatibility'));
+    const weaknessFactor = hasWeakPoint
+        ? (
+            compatibility * percentMultiplier('weaknessAttributeDamage')
+            + (value('weaknessStrike') + value('superWeaknessStrike')  +value('weaknessRes') + value('superWeaknessRes')) / 100
+        ) * value('trueAttributeUnbound')
+        : compatibility;
 
-    // Crit, Aegis, Synergy, Pierce multipliers
-    if (crit === 'yes') {
-        damage *= (1.3 + critDmg);
-    }
-    if (synergy === 'yes') {
-        damage *= (1 + synergyDmg);
-    }
-    if (aegis === 'yes') {
-        damage *= (1 + aegisDmg);
-    }
-    if (pierce === 'yes') {
-        damage = (damage + baseAtk * 0.06) * (1 + piercePower / 100);
-    }
+    const randomFactor = 1 + Number(selected('randomRoll')) / 100;
+    const ordinaryDamage = baseDamage * damageFactors.reduce((product, factor) => product * factor, 1)
+        * randomFactor * criticalFactor * synergyFactor * aegisFactor;
+    const damage = Math.max(0, (ordinaryDamage + fixedPierceDamage) * pierceFactor
+        * weaknessFactor * percentMultiplier('anyMultiplier'));
 
-    // Apply attribute advantage and Weakness Strike
-    if (attributeAdvantage === 'advantage') {
-        damage *=   (1.5 + weaknessStrike/100);
-    } else if (attributeAdvantage === 'resist') {
-        damage *= 0.7;
-    }
-
-    // Apply Unbound State (separate from attribute advantage)
-    if (unboundState === 'weakPoint') {
-        damage *= 1.2;
-    } else if (unboundState === 'superWeakPoint') {
-        damage *= 1.3;
-    }
-
-    // Apply Stun Strike and Enamor Strike multipliers
-    if (stunStrike > 0) {
-        damage *= (1 + stunStrike / 100);
-    }
-    if (enamor > 0) {
-        damage *= (1 + enamor / 100);
-    }
-
-    // Output final damage
-    const rounded = Math.round(damage);
-    lastCalculatedDamage = rounded;
-    document.getElementById('result').innerHTML = `Damage: ${rounded}`;
-    // Only auto-record when checkbox is checked
-    const auto = document.getElementById('autoRecord') && document.getElementById('autoRecord').checked;
-    if (auto) {
-        addToHistory(damage);
-        renderHistory();
-    }
+    currentDamage = Math.round(damage);
+    document.getElementById('result').textContent = `Damage: ${currentDamage}`;
+    document.getElementById('details').innerHTML = [
+        `<strong>Enemy DEF:</strong> ${displayedDef.toFixed(2)}`,
+        `<strong>Actual enemy DEF:</strong> ${actualDef.toFixed(2)} (subtracts ${(actualDef * 0.2).toFixed(2)} from base damage)`,
+        `<strong>Displayed ATK:</strong> ${displayedAtk.toFixed(2)}`,
+        `<strong>Added ATK:</strong> synergy ${synergyAtk.toFixed(2)} + Aegis ${aegisAtk.toFixed(2)}`,
+        `<strong>Actual ATK / DEF:</strong> ${actualAtk.toFixed(2)} / ${actualDef.toFixed(2)}`,
+        `<strong>Critical / Synergy / Aegis:</strong> ×${criticalFactor.toFixed(3)} / ×${synergyFactor.toFixed(3)} / ×${aegisFactor.toFixed(3)}`,
+        `<strong>Fixed pierce damage:</strong> +${fixedPierceDamage.toFixed(2)}; <strong>Pierce:</strong> ×${pierceFactor.toFixed(3)}`,
+        `<strong>${hasWeakPoint ? 'Weak Point' : 'Attribute compatibility'} / Other:</strong> ×${weaknessFactor.toFixed(3)} / ×${percentMultiplier('anyMultiplier').toFixed(3)}`
+    ].join('<br>');
 }
 
-// Auto-update on input
-document.querySelectorAll('input, select').forEach(input => {
-    input.addEventListener('input', calculateDamage);
+document.querySelectorAll('#damageForm input, #damageForm select').forEach(element => {
+    element.addEventListener('input', calculateDamage);
+    element.addEventListener('change', calculateDamage);
 });
-// Record and clear buttons
-document.getElementById('recordBtn').addEventListener('click', () => {
-    addToHistory(lastCalculatedDamage);
-    renderHistory();
+document.getElementById('saveSimulation').addEventListener('click', saveSimulation);
+document.getElementById('resetSimulations').addEventListener('click', resetSimulations);
+document.getElementById('simulationName').addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        saveSimulation();
+    }
 });
-document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-    damageHistory = [];
-    localStorage.removeItem(HISTORY_KEY);
-    renderHistory();
+document.querySelectorAll('.orb-count').forEach(input => {
+    input.addEventListener('input', enforceOrbLimit);
+    input.addEventListener('change', enforceOrbLimit);
 });
-
-// Render any existing history first, then calculate once without duplicating a same-value entry
-renderHistory();
+document.querySelectorAll('.gauge-buff-grid input').forEach(input => {
+    input.addEventListener('input', calculateOrbGauges);
+    input.addEventListener('change', calculateOrbGauges);
+});
+document.getElementById('manualUnityGaugeBuff').addEventListener('change', event => {
+    document.getElementById('unityGaugeBuffControls').hidden = !event.currentTarget.checked;
+    calculateOrbGauges();
+});
+loadSavedSimulations();
 calculateDamage();
+calculateOrbGauges();
 </script>
 </body>
 </html>
-<!-- 
-Formula for total damage calculation:
-Damage = { [0.4 * (BaseATK + SynAtk + AegisAtk) * (1 + MPatk/100) * (1 + ElemATKBonus/100) - 0.2 * EnemyDEF] * (UltMult/100) * (1 + UltDMG/100) * (1 + UltResDown/100) * (1 + MPDMG/100 if applicable) * CritMultiplier * SynergyMultiplier * AegisMultiplier * PierceMultiplier } * AttributeAdvantageMultiplier*WeaknessMultiplier*ProtectorWeaknessBuffer*StunStrikeMultiplier*EnamorStrikeMultiplier
-
- -->
