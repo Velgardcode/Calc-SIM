@@ -114,7 +114,9 @@
         border-radius: 6px;
         background: #fafafa;
     }
+    .all-gauge-row { margin-top: 8px; }
     .gauge-buff-row h3 { margin: 0 0 6px; font-size: 12px; }
+    .gauge-buff-heading { margin: 0 0 6px; font-size: 12px; }
     .gauge-buff-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; }
     .gauge-buff-grid .field label { height: auto; min-height: 2.4em; font-size: 10px; }
     .gauge-buff-grid .field input { padding: 4px; font-size: 11px; }
@@ -288,7 +290,7 @@
         </div>
         <section class="gauge-container" aria-labelledby="gaugeHeading">
             <h2 id="gaugeHeading">Orb Gauge Calculator</h2>
-            <p class="note">Enter each unit's orb counts. The team can use at most 6 orbs total. A Unity orb uses the highest of the Orange, Green, and Blue Soul increases, plus All Soul increase.</p>
+            <p class="note">Enter each unit's orb counts. The team can use at most 6 orbs total. Separate buffs multiply for colored orbs. Unity adds the highest gauge-specific buff and highest All Gauge Increase together before applying its multiplier.</p>
             <div class="unit-grid">
                 <section class="unit-card" aria-labelledby="unit1Heading">
                     <h3 id="unit1Heading">Unit 1</h3>
@@ -341,6 +343,14 @@
                     </div>
                 </div>
             </div>
+            <div class="gauge-buff-row all-gauge-row">
+                <h3 class="gauge-buff-heading">All Gauge Increase</h3>
+                <div class="gauge-buff-grid">
+                    <div class="field"><label for="allGaugeOrangeBuff">Orange Soul's All Gauge Increase (%)</label><input id="allGaugeOrangeBuff" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="allGaugeGreenBuff">Green Soul's All Gauge Increase (%)</label><input id="allGaugeGreenBuff" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="allGaugeBlueBuff">Blue Soul's All Gauge Increase (%)</label><input id="allGaugeBlueBuff" type="number" value="0" step="any"></div>
+                </div>
+            </div>
             <label class="unity-override-toggle" for="manualUnityGaugeBuff">
                 <input id="manualUnityGaugeBuff" type="checkbox">
                 If orbs have a nerf, manually enter the Unity gauge buff.
@@ -356,21 +366,17 @@
                 <div class="unit-gauge-result">
                     <strong>Unit 1</strong>
                     <div>Ultimate Gauge: <span id="unit1UltGaugeResult">0</span></div>
-                    <div>Prot Gauge: <span id="unit1ProtGaugeResult">0</span></div>
-                    <div>SP Gauge: <span id="unit1SpGaugeResult">0</span></div>
                 </div>
                 <div class="unit-gauge-result">
                     <strong>Unit 2</strong>
                     <div>Ultimate Gauge: <span id="unit2UltGaugeResult">0</span></div>
-                    <div>Prot Gauge: <span id="unit2ProtGaugeResult">0</span></div>
-                    <div>SP Gauge: <span id="unit2SpGaugeResult">0</span></div>
                 </div>
                 <div class="unit-gauge-result">
                     <strong>Unit 3</strong>
                     <div>Ultimate Gauge: <span id="unit3UltGaugeResult">0</span></div>
-                    <div>Prot Gauge: <span id="unit3ProtGaugeResult">0</span></div>
-                    <div>SP Gauge: <span id="unit3SpGaugeResult">0</span></div>
                 </div>
+                <div><strong>Team Prot Gauge:</strong> <span id="protGaugeResult">0</span></div>
+                <div><strong>Team SP Gauge:</strong> <span id="spGaugeResult">0</span></div>
             </div>
         </section>
     </div>
@@ -404,6 +410,10 @@ function orbCount(input) {
     return Number.isFinite(count) ? Math.max(0, count) : 0;
 }
 
+function formatNumber(number, maximumFractionDigits = 0) {
+    return new Intl.NumberFormat('de-DE', { maximumFractionDigits }).format(number);
+}
+
 function enforceOrbLimit(event) {
     const changedInput = event.currentTarget;
     const countInputs = [...document.querySelectorAll('.orb-count')];
@@ -425,8 +435,10 @@ function enforceOrbLimit(event) {
     calculateOrbGauges();
 }
 
-function gaugeSoulBuff(gauge, color) {
-    return value(`${gauge}${color}Buff`) + value(`${gauge}AllBuff`);
+function gaugeSoulMultiplier(gauge, color) {
+    return percentMultiplier(`${gauge}${color}Buff`)
+        * percentMultiplier(`${gauge}AllBuff`)
+        * percentMultiplier(`allGauge${color}Buff`);
 }
 
 function calculateOrbGauges() {
@@ -453,25 +465,34 @@ function calculateOrbGauges() {
     ];
 
     gaugeTypes.forEach(gauge => {
-        const allSoulBuff = value(`${gauge.id}AllBuff`);
-        const highestColorBuff = Math.max(
-            value(`${gauge.id}OrangeBuff`),
-            value(`${gauge.id}GreenBuff`),
-            value(`${gauge.id}BlueBuff`)
+        const highestGaugeBuff = Math.max(
+            ...['Orange', 'Green', 'Blue'].map(color => value(`${gauge.id}${color}Buff`))
         );
-        const unityBuff = document.getElementById('manualUnityGaugeBuff').checked
-            ? value(`${gauge.id}UnityBuff`)
-            : highestColorBuff + allSoulBuff;
+        const highestAllGaugeBuff = Math.max(
+            ...['Orange', 'Green', 'Blue'].map(color => value(`allGauge${color}Buff`))
+        );
+        const unityMultiplier = document.getElementById('manualUnityGaugeBuff').checked
+            ? percentMultiplier(`${gauge.id}UnityBuff`)
+            : 1 + (highestGaugeBuff + value(`${gauge.id}AllBuff`) + highestAllGaugeBuff) / 100;
+        let teamGauge = 0;
         units.forEach(({ unit, counts }) => {
             const colorGauge = ['Orange', 'Green', 'Blue'].reduce((total, color) => {
-                const buff = gaugeSoulBuff(gauge.id, color);
-                return total + gauge.base[color] * counts[color] * comboBonus * (1 + buff / 100);
+                return total + gauge.base[color] * counts[color] * comboBonus
+                    * gaugeSoulMultiplier(gauge.id, color);
             }, 0);
-            const unityGauge = gauge.base.Unity * counts.Unity * comboBonus * (1 + unityBuff / 100);
+            const unityGauge = gauge.base.Unity * counts.Unity * comboBonus * unityMultiplier;
             const result = Math.round((colorGauge + unityGauge) * 100) / 100;
-            const output = document.getElementById(`unit${unit}${gauge.id === 'sp' ? 'Sp' : gauge.id === 'prot' ? 'Prot' : 'Ult'}GaugeResult`);
-            output.textContent = result.toLocaleString(undefined, { maximumFractionDigits: 2 });
+            teamGauge += result;
+            if (gauge.id === 'ult') {
+                document.getElementById(`unit${unit}UltGaugeResult`).textContent =
+                    formatNumber(result, 2);
+            }
         });
+        if (gauge.id !== 'ult') {
+            const outputId = gauge.id === 'prot' ? 'protGaugeResult' : 'spGaugeResult';
+            document.getElementById(outputId).textContent =
+                formatNumber(Math.round(teamGauge * 100) / 100, 2);
+        }
     });
 }
 
@@ -487,7 +508,7 @@ function renderSavedSimulations() {
         const item = document.createElement('li');
         item.className = 'saved-simulation';
         const description = document.createElement('span');
-        description.textContent = `${simulation.name} — Damage: ${simulation.damage.toLocaleString()}`;
+        description.textContent = `${simulation.name} — Damage: ${formatNumber(simulation.damage)}`;
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.textContent = 'Delete';
@@ -658,7 +679,7 @@ function calculateDamage() {
         * aegisFactor * weaknessFactor * percentMultiplier('anyMultiplier'));
 
     currentDamage = Math.round(damage);
-    document.getElementById('result').textContent = `Damage: ${currentDamage}`;
+    document.getElementById('result').textContent = `Damage: ${formatNumber(currentDamage)}`;
     document.getElementById('details').innerHTML = [
         `<strong>Enemy DEF:</strong> ${displayedDef.toFixed(2)}`,
         `<strong>Actual enemy DEF:</strong> ${actualDef.toFixed(2)} (subtracts ${(actualDef * 0.2).toFixed(2)} from base damage)`,
