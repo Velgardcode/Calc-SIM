@@ -243,14 +243,14 @@
                     <div class="field"><label for="synergyEnabled">Synergy</label><select id="synergyEnabled"><option value="no">No</option><option value="yes">Yes</option></select></div>
                     <div class="field"><label for="synergyPower">Synergy power (%)</label><input id="synergyPower" type="number" value="0" step="any"></div>
                     <div class="field"><label for="synergyRes">Synergy resistance (%)</label><input id="synergyRes" type="number" value="0" step="any"></div>
-                    <div class="field"><label for="supportAtk">Support displayed ATK</label><input id="supportAtk" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="supportAtk">Support Slot displayed ATK</label><input id="supportAtk" type="number" value="0" step="any"></div>
                 </div>
                 <div class="rate-row">
                     <div class="field"><label for="aegisSuper">Super Aegis</label><select id="aegisSuper"><option value="no">No</option><option value="yes">Yes</option></select></div>
                     <div class="field"><label for="aegisEnabled">Aegis</label><select id="aegisEnabled"><option value="no">No</option><option value="yes">Yes</option></select></div>
                     <div class="field"><label for="aegisPower">Aegis power (%)</label><input id="aegisPower" type="number" value="0" step="any"></div>
                     <div class="field"><label for="aegisRes">Aegis resistance (%)</label><input id="aegisRes" type="number" value="0" step="any"></div>
-                    <div class="field"><label for="aegisSupportDef">Support displayed DEF</label><input id="aegisSupportDef" type="number" value="0" step="any"></div>
+                    <div class="field"><label for="aegisdef">Displayed DEF</label><input id="aegisdef" type="number" value="0" step="any"></div>
                 </div>
             </div>
 
@@ -587,7 +587,7 @@ function calculateDamage() {
         ? value('supportAtk') * (selected('synergySuper') === 'yes' ? 0.55 : 0.4)
         : 0;
     const aegisAtk = isAegis
-        ? value('aegisSupportDef') * (selected('aegisSuper') === 'yes' ? 0.55 : 0.4)
+        ? value('aegisdef') * (selected('aegisSuper') === 'yes' ? 0.55 : 0.4)
         : 0;
     const actualAtk = (displayedAtk + synergyAtk + aegisAtk)
         * percentMultiplier('physMagAtk')
@@ -663,7 +663,7 @@ function calculateDamage() {
         `<strong>Actual enemy DEF:</strong> ${actualDef.toFixed(2)} (subtracts ${(actualDef * 0.2).toFixed(2)} from base damage)`,
         `<strong>Displayed ATK:</strong> ${displayedAtk.toFixed(2)}`,
         `<strong>Added ATK:</strong> synergy ${synergyAtk.toFixed(2)} + Aegis ${aegisAtk.toFixed(2)}`,
-        `<strong>Actual ATK / DEF:</strong> ${actualAtk.toFixed(2)} / ${actualDef.toFixed(2)}`,
+        `<strong>Actual ATK:</strong> ${actualAtk.toFixed(2)}`,
         `<strong>Critical / Synergy / Aegis:</strong> ×${criticalFactor.toFixed(3)} / ×${synergyFactor.toFixed(3)} / ×${aegisFactor.toFixed(3)}`,
         `<strong>Fixed pierce damage:</strong> +${fixedPierceDamage.toFixed(2)}; <strong>Pierce:</strong> ×${pierceFactor.toFixed(3)}`,
         `<strong>${hasWeakPoint ? 'Weak Point' : 'Attribute compatibility'} / Other:</strong> ×${weaknessFactor.toFixed(3)} / ×${percentMultiplier('anyMultiplier').toFixed(3)}`
